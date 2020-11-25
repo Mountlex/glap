@@ -1,11 +1,12 @@
+from os import name
 import click
 import gitlab
 import os
 import toml
 from zipfile import ZipFile
 from yaspin import yaspin
+from pathlib import Path
 
-config = toml.load('config.toml')
 
 @click.group()
 def main():
@@ -13,44 +14,60 @@ def main():
 
 @main.command()
 @click.argument('namespace')
-@click.argument('project_id')
+@click.argument('repository')
 @click.option('-o', '--output', default='.', type=click.Path(file_okay=False, dir_okay=True))
 @click.option('-b', '--branch', default='main', type=click.STRING)
-@click.option('-r', '--remote', type=click.STRING)
+@click.option('-r', '--remote_name', type=click.STRING)
 @click.option('-j', '--job', default='PDFs', type=click.STRING)
-def download(namespace, project_id, output, dry, branch, job, remote):
-    all_remotes = config['remotes']
-    if remote and remote in all_remotes:
-        repo = all_remotes[remote]
+def download(namespace, repository, output, branch, job, remote_name):
+    if 'remotes' in config and len(list(config['remotes'])) > 0:
+        all_remotes = config['remotes']
+        if remote_name and remote_name in all_remotes:
+            remote = all_remotes[remote_name]
+        else:
+            first_remote = list(all_remotes.keys())[0]
+            remote = all_remotes[first_remote]
+        
+        connect_and_download(remote, namespace, repository, branch, job, output)
     else:
-        first_repo = list(all_remotes.keys())[0]
-        repo = all_remotes[first_repo]
-
-    gl = gitlab_instance(repo)  
-    project = gl.projects.get(f"{namespace}/{project_id}")
-    download_and_unzip_artifacts(project, output, branch, job)
+        print("There are no remotes configured!")
 
 def shortcut_command(shortcut):
     shortcut_config = config['shortcuts'][shortcut]
-    remote = shortcut_config['remote']
+    remote_name = shortcut_config['remote']
     default_branch = shortcut_config['branch']
     default_job = shortcut_config['job']
     @click.option('-j', '--job', default=default_job, type=click.STRING)
     @click.option('-b', '--branch', default=default_branch, type=click.STRING)
     @click.option('-o', '--output', default='.', type=click.Path(file_okay=False, dir_okay=True))
     def f(output, job, branch):
-        repo = config['remotes'][remote]
+        remote = config['remotes'][remote_name]
         namespace = shortcut_config['namespace']
-        project_id = shortcut_config['project'] 
+        repository = shortcut_config['repository'] 
 
-        gl = gitlab_instance(repo)  
-        project = gl.projects.get(f"{namespace}/{project_id}")
-        download_and_unzip_artifacts(project, output, branch, job)
+        connect_and_download(remote, namespace, repository, branch, job, output)
+  
     return f
 
-def gitlab_instance(repo):
-    url = repo['url']
-    token = repo['token']
+def connect_and_download(remote, namespace, repository, branch, job, output):
+    if check_remote(remote):
+        try:
+            gl = gitlab_instance(remote)  
+            project = gl.projects.get(f"{namespace}/{repository}")
+            download_and_unzip_artifacts(project, output, branch, job)
+        except gitlab.GitlabGetError:
+            print(f"Could not find GitLab repository at {remote['url']}/{namespace}/{repository}")
+
+def check_remote(remote):
+    if 'url' in remote and 'token' in remote:
+        return True
+    else:
+        print("Remote is not configured properly!")
+        return False
+
+def gitlab_instance(remote):
+    url = remote['url']
+    token = remote['token']
     return gitlab.Gitlab(url, private_token=token)
 
 def download_and_unzip_artifacts(project, output, branch, job):
@@ -73,12 +90,23 @@ def download_and_unzip_artifacts(project, output, branch, job):
                 zipObj.extractall(output)
                 spinner.ok("✔");
             
-            print("Downloaded the following files:")
+            print("Downloaded the following file(s):")
             for filename in zipObj.filelist:
                 print(f"{output}/{filename.filename}")
         
         os.unlink(zipfn)
 
 
-for shortcut in config['shortcuts']:
-    main.command(name=shortcut)(shortcut_command(shortcut))
+# Setup from config
+
+CONFIG_PATH = Path.home() / ".config/glap/glap.toml"
+try:
+    config = toml.load(CONFIG_PATH)
+    if 'shortcuts' in config:
+        for shortcut in config['shortcuts']:
+            main.command(name=shortcut)(shortcut_command(shortcut))
+except FileNotFoundError or FileExistsError:
+    print("Could not find configuration file!")
+    exit(1)
+
+

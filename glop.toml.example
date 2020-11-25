@@ -1,0 +1,10 @@
+[remotes.uni-bremen]
+url = "https://gitlab.informatik.uni-bremen.de"
+token = ""
+
+[shortcuts.adm-ws-2020]
+remote = "uni-bremen"
+namespace = "cslog"
+repository = "adm-ws-2020"
+branch = "main"
+job = "PDFs"
