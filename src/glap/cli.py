@@ -1,8 +1,9 @@
 import click
 import gitlab
-import subprocess
 import os
 import toml
+from zipfile import ZipFile
+from yaspin import yaspin
 
 config = toml.load('config.toml')
 
@@ -50,19 +51,33 @@ def shortcut_command(shortcut):
 def gitlab_instance(repo):
     url = repo['url']
     token = repo['token']
-
     return gitlab.Gitlab(url, private_token=token)
 
 def download_and_unzip_artifacts(project, output, branch, job):
     zipfn = f"___artifacts.zip"
-    try:
-        with open(zipfn, "wb") as f:
-            project.artifacts(ref_name=branch, job=job, streamed=True, action=f.write)       
-    except gitlab.exceptions.GitlabGetError:
-        print(f"Could not download artifacts for branch {branch} and job {job}!")
-    
-    subprocess.run(["unzip", "-bo", zipfn, "-d", output])
-    os.unlink(zipfn)
+    success = False
+    with yaspin(text="Downloading", color="cyan") as spinner:
+        try:
+            with open(zipfn, "wb") as f:
+                project.artifacts(ref_name=branch, job=job, streamed=True, action=f.write)
+            success = True   
+        except gitlab.exceptions.GitlabGetError:
+            spinner.stop();
+            print(f"Could not download artifacts for branch {branch} and job {job}!")
+        else:
+            spinner.ok("✔");
+
+    if success:
+        with ZipFile(zipfn, 'r') as zipObj:
+            with yaspin(text="Unzipping", color="cyan") as spinner: 
+                zipObj.extractall(output)
+                spinner.ok("✔");
+            
+            print("Downloaded the following files:")
+            for filename in zipObj.filelist:
+                print(f"{output}/{filename.filename}")
+        
+        os.unlink(zipfn)
 
 
 for shortcut in config['shortcuts']:
