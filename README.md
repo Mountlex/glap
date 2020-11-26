@@ -1,5 +1,7 @@
 # glap
 
+![Python package](https://github.com/Mountlex/glap/workflows/Python%20package/badge.svg)
+
 A GitLab Artifact Puller / Downloader
 
 ## Quick Start
