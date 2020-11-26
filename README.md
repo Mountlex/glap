@@ -1,6 +1,6 @@
 # glap
 
-An GitLab Artifact Puller / Downloader
+A GitLab Artifact Puller / Downloader
 
 ## Quick Start
 
