@@ -1,0 +1,10 @@
+[remotes.uni]
+url = "https://gitlab.uni.de"
+token = ""
+
+[shortcuts.myshortcut]
+remote = "uni"
+namespace = "ag"
+repository = "vl"
+branch = "main"
+job = "PDFs"
