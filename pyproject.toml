@@ -1,4 +1,26 @@
-[build-system]
-requires = ["setuptools", "wheel"]
-build-backend = "setuptools.build_meta"
+[tool.poetry]
+name = "glap"
+version = "0.2.0"
+description = "GitLab Artifact Puller / Downloader"
+authors = ["Alexander Lindermayr <alexander.lindermayr97@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/Mountlex/glap"
 
+[tool.poetry.scripts]
+glap = "glap.cli:main"
+
+[tool.poetry.dependencies]
+python = "^3.7"
+toml = "^0.10.2"
+requests = "^2.25.1"
+python-gitlab = "^2.6.0"
+yaspin = "^1.3.0"
+click = "^7.1.2"
+appdirs = "^1.4.4"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
