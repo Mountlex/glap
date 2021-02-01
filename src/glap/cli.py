@@ -78,8 +78,10 @@ def connect_and_download(remote, namespace, repository, branch, job, output, tem
             gl = gitlab_instance(remote)
             project = gl.projects.get(f"{namespace}/{repository}")
             if verbose:
-                print(f"Job {job} on branch {branch} at {remote['url']}{namespace}/{repository}")
-            download_and_unzip_artifacts(project, output, branch, job, temp, verbose, silent)
+                print(
+                    f"Job {job} on branch {branch} at {remote['url']}{namespace}/{repository}")
+            download_and_unzip_artifacts(
+                project, output, branch, job, temp, verbose, silent)
         except gitlab.GitlabGetError:
             print(
                 f"Could not find GitLab repository at {remote['url']}{namespace}/{repository}")
@@ -108,7 +110,6 @@ def download_and_unzip_artifacts(project, output, branch, job, temp, verbose, si
     zipfn = "___artifacts.zip"
     success = False
 
-
     spinner = yaspin(text="Downloading", color="cyan")
     if not silent:
         spinner.start()
@@ -116,7 +117,7 @@ def download_and_unzip_artifacts(project, output, branch, job, temp, verbose, si
     try:
         with open(zipfn, "wb") as f:
             project.artifacts(ref_name=branch, job=job,
-                                  streamed=True, action=f.write)
+                              streamed=True, action=f.write)
         success = True
     except gitlab.exceptions.GitlabGetError as error:
         if not silent:
@@ -126,7 +127,6 @@ def download_and_unzip_artifacts(project, output, branch, job, temp, verbose, si
     else:
         if not silent:
             spinner.ok("✔")
-            
 
     if success:
         with ZipFile(zipfn, 'r') as zipObj:
@@ -164,7 +164,7 @@ def open_dir(path):
 
 # Setup from config
 if Path(CONFIG_PATH).is_file():
-   config_file = CONFIG_PATH
+    config_file = CONFIG_PATH
 elif Path(CONFIG_FILE_NAME).is_file():
     config_file = CONFIG_FILE_NAME
 else:
@@ -180,5 +180,6 @@ if config_file:
         print(f"Could not decode configuration file {config_file}: {error}!")
         exit(1)
 else:
-    print(f"Could not find a configuration file at {CONFIG_PATH} or ./{CONFIG_FILE_NAME}!")
+    print(
+        f"Could not find a configuration file at {CONFIG_PATH} or ./{CONFIG_FILE_NAME}!")
     exit(1)
