@@ -145,7 +145,7 @@ def download_and_unzip_artifacts(project, output, branch, job, temp, verbose, si
             if verbose and not silent:
                 print("Downloaded the following file(s):")
                 for filename in zipObj.filelist:
-                    print(filename.filename)
+                    print(f"- {filename.filename}")
 
             if temp:
                 open_dir(TMP_PATH)
