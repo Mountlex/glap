@@ -8,6 +8,7 @@ from appdirs import user_config_dir, user_data_dir
 from pathlib import Path
 import platform
 import subprocess
+from contextlib import nullcontext
 
 CONFIG_PATH = user_config_dir("glap") + "/glap.toml"
 TMP_PATH = user_data_dir("glap")
@@ -94,18 +95,26 @@ def gitlab_instance(remote):
 def download_and_unzip_artifacts(project, output, branch, job, temp, verbose, silent):
     zipfn = "___artifacts.zip"
     success = False
-    with yaspin(text="Downloading", color="cyan") as spinner:
-        try:
-            with open(zipfn, "wb") as f:
-                project.artifacts(ref_name=branch, job=job,
+
+
+    spinner = yaspin(text="Downloading", color="cyan")
+    if not silent:
+        spinner.start()
+
+    try:
+        with open(zipfn, "wb") as f:
+            project.artifacts(ref_name=branch, job=job,
                                   streamed=True, action=f.write)
-            success = True
-        except gitlab.exceptions.GitlabGetError:
+        success = True
+    except gitlab.exceptions.GitlabGetError:
+        if not silent:
             spinner.stop()
-            print(
-                f"Could not download artifacts for branch {branch} and job {job}!")
-        else:
+        print(
+            f"Could not download artifacts for branch {branch} and job {job}!")
+    else:
+        if not silent:
             spinner.ok("✔")
+            
 
     if success:
         with ZipFile(zipfn, 'r') as zipObj:
@@ -114,13 +123,17 @@ def download_and_unzip_artifacts(project, output, branch, job, temp, verbose, si
                 [f.unlink() for f in Path(TMP_PATH).glob("*") if f.is_file()]
                 output = TMP_PATH
 
-            with yaspin(text="Unzipping", color="cyan") as spinner:
-                zipObj.extractall(output)
-                spinner.ok("✔")
+            zip_spinner = yaspin(text="Unzipping", color="cyan")
+            if not silent:
+                zip_spinner.start()
+            zipObj.extractall(output)
+            if not silent:
+                zip_spinner.ok("✔")
 
-            print("Downloaded the following file(s):")
-            for filename in zipObj.filelist:
-                print(filename.filename)
+            if verbose and not silent:
+                print("Downloaded the following file(s):")
+                for filename in zipObj.filelist:
+                    print(filename.filename)
 
             if temp:
                 open_dir(TMP_PATH)
