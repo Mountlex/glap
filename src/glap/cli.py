@@ -102,7 +102,7 @@ def gitlab_instance(remote):
     private_token = remote.get(PRIVATE_TOKEN_KEY)
     oauth_token = remote.get(OAUTH_TOKEN_KEY)
     job_token = remote.get(JOB_TOKEN_KEY)
-    return gitlab.Gitlab(url, private_token, job_token, oauth_token)
+    return gitlab.Gitlab(url, private_token, oauth_token, job_token)
 
 
 def download_and_unzip_artifacts(project, output, branch, job, temp, verbose, silent):
