@@ -12,15 +12,19 @@ A GitLab Artifact Puller / Downloader
 pip install glap
 ```
 
-Before you can use `glap`, you have to setup your configuration file located at `~/.config/glap/glap.toml`. It contains the following information.
+Before you can use `glap`, you have to setup your configuration file located at `~/.config/glap/glap.toml` (if such a file cannot be found, it will also search for a local `glap.toml` file). It contains the following information.
 
-* Remotes with corresponding `url`s and access-tokens (`token`):
+* Remotes with corresponding `url`s and access-tokens:
 
 ```toml
 [remotes.myremote]
 url = "https://gitlab.com"
-token = "<my-access-token>"
+private_token = "<my-private-token>"
+oauth_token = "<my-oauth-token>"
+job_token = "<my-job-token>"
 ```
+
+Note that there must be exactly one token specified.
 
 * Shortcuts for specific repositories. For example, the following shortcut points at the `PDFs` job of the `main` branch of `https://gitlab.com/name/repo`.
 
@@ -59,4 +63,6 @@ where `myremote` is the name of the remote in the configuration file.
 * `--branch` (`-b`) specifies the branch's name.
 * `--output` (`-o`) specifies the download location.
 * `--temp` (`-t`) downloads the artifact to a temporary location and opens the directory.
+* `--silent` (`-s`) enables silent mode (exceptions only).
+* `--verbose` (`-v`) enables verbose mode (e.g. print file list).
   
