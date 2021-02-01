@@ -1,6 +1,6 @@
 [remotes.uni]
 url = "https://gitlab.uni.de"
-token = ""
+private_token = ""
 
 [shortcuts.myshortcut]
 remote = "uni"

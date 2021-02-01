@@ -10,8 +10,13 @@ import platform
 import subprocess
 from contextlib import nullcontext
 
-CONFIG_PATH = user_config_dir("glap") + "/glap.toml"
+CONFIG_FILE_NAME = "glap.toml"
+CONFIG_PATH = user_config_dir("glap") + "/" + CONFIG_FILE_NAME
 TMP_PATH = user_data_dir("glap")
+PRIVATE_TOKEN_KEY = "private_token"
+OAUTH_TOKEN_KEY = "oauth_token"
+JOB_TOKEN_KEY = "job_token"
+
 
 @click.group()
 def main():
@@ -72,24 +77,31 @@ def connect_and_download(remote, namespace, repository, branch, job, output, tem
         try:
             gl = gitlab_instance(remote)
             project = gl.projects.get(f"{namespace}/{repository}")
+            if verbose:
+                print(f"Job {job} on branch {branch} at {remote['url']}{namespace}/{repository}")
             download_and_unzip_artifacts(project, output, branch, job, temp, verbose, silent)
         except gitlab.GitlabGetError:
             print(
-                f"Could not find GitLab repository at {remote['url']}/{namespace}/{repository}")
+                f"Could not find GitLab repository at {remote['url']}{namespace}/{repository}")
 
 
 def check_remote(remote):
-    if 'url' in remote and 'token' in remote:
-        return True
-    else:
-        print("Remote is not configured properly!")
+    if 'url' not in remote:
+        print("Remote is not configured properly: No url specified!")
         return False
+    elif len(set(remote).intersection(set([PRIVATE_TOKEN_KEY, OAUTH_TOKEN_KEY, JOB_TOKEN_KEY]))) != 1:
+        print("Remote is not configured properly: There must be exactly one authentication token!")
+        return False
+    else:
+        return True
 
 
 def gitlab_instance(remote):
     url = remote['url']
-    token = remote['token']
-    return gitlab.Gitlab(url, private_token=token)
+    private_token = remote.get(PRIVATE_TOKEN_KEY)
+    oauth_token = remote.get(OAUTH_TOKEN_KEY)
+    job_token = remote.get(JOB_TOKEN_KEY)
+    return gitlab.Gitlab(url, private_token, job_token, oauth_token)
 
 
 def download_and_unzip_artifacts(project, output, branch, job, temp, verbose, silent):
@@ -106,11 +118,11 @@ def download_and_unzip_artifacts(project, output, branch, job, temp, verbose, si
             project.artifacts(ref_name=branch, job=job,
                                   streamed=True, action=f.write)
         success = True
-    except gitlab.exceptions.GitlabGetError:
+    except gitlab.exceptions.GitlabGetError as error:
         if not silent:
             spinner.stop()
         print(
-            f"Could not download artifacts for branch {branch} and job {job}!")
+            f"Could not download artifacts for branch {branch} and job {job}: {error}!")
     else:
         if not silent:
             spinner.ok("✔")
@@ -151,11 +163,22 @@ def open_dir(path):
 
 
 # Setup from config
-try:
-    config = toml.load(CONFIG_PATH)
-    if 'shortcuts' in config:
-        for shortcut in config['shortcuts']:
-            main.command(name=shortcut)(shortcut_command(shortcut))
-except FileNotFoundError or FileExistsError:
-    print(f"Could not find configuration file at {CONFIG_PATH}!")
+if Path(CONFIG_PATH).is_file():
+   config_file = CONFIG_PATH
+elif Path(CONFIG_FILE_NAME).is_file():
+    config_file = CONFIG_FILE_NAME
+else:
+    config_file = None
+
+if config_file:
+    try:
+        config = toml.load(config_file)
+        if 'shortcuts' in config:
+            for shortcut in config['shortcuts']:
+                main.command(name=shortcut)(shortcut_command(shortcut))
+    except toml.TomlDecodeError as error:
+        print(f"Could not decode configuration file {config_file}: {error}!")
+        exit(1)
+else:
+    print(f"Could not find a configuration file at {CONFIG_PATH} or ./{CONFIG_FILE_NAME}!")
     exit(1)
