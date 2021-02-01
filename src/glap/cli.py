@@ -4,13 +4,13 @@ import os
 import toml
 from zipfile import ZipFile
 from yaspin import yaspin
+from appdirs import user_config_dir, user_data_dir
 from pathlib import Path
 import platform
 import subprocess
 
-CONFIG_PATH = Path.home() / ".config/glap/glap.toml"
-TMP_PATH = "/tmp/glap"
-
+CONFIG_PATH = user_config_dir("glap") + "/glap.toml"
+TMP_PATH = user_data_dir("glap")
 
 @click.group()
 def main():
@@ -24,8 +24,10 @@ def main():
 @click.option('-b', '--branch', default='main', type=click.STRING)
 @click.option('-r', '--remote_name', type=click.STRING)
 @click.option('-t', '--temp / --no-temp', default=False)
+@click.option('-v', '--verbose / --no-verbose', default=False)
+@click.option('-s', '--silent / --no-silent', default=False)
 @click.option('-j', '--job', default='PDFs', type=click.STRING)
-def download(namespace, repository, output, branch, job, remote_name, temp):
+def download(namespace, repository, output, branch, job, remote_name, temp, verbose, silent):
     if 'remotes' in config and len(list(config['remotes'])) > 0:
         all_remotes = config['remotes']
         if remote_name and remote_name in all_remotes:
@@ -35,7 +37,7 @@ def download(namespace, repository, output, branch, job, remote_name, temp):
             remote = all_remotes[first_remote]
 
         connect_and_download(remote, namespace, repository,
-                             branch, job, output, temp)
+                             branch, job, output, temp, verbose, silent)
     else:
         print("There are no remotes configured!")
 
@@ -51,23 +53,25 @@ def shortcut_command(shortcut):
     @click.option('-t', '--temp / --no-temp', default=False)
     @click.option('-o', '--output', default='.',
                   type=click.Path(file_okay=False, dir_okay=True))
-    def f(output, job, branch, temp):
+    @click.option('-v', '--verbose / --no-verbose', default=False)
+    @click.option('-s', '--silent / --no-silent', default=False)
+    def f(output, job, branch, temp, verbose, silent):
         remote = config['remotes'][remote_name]
         namespace = shortcut_config['namespace']
         repository = shortcut_config['repository']
 
         connect_and_download(remote, namespace, repository,
-                             branch, job, output, temp)
+                             branch, job, output, temp, verbose, silent)
 
     return f
 
 
-def connect_and_download(remote, namespace, repository, branch, job, output, temp):
+def connect_and_download(remote, namespace, repository, branch, job, output, temp, verbose, silent):
     if check_remote(remote):
         try:
             gl = gitlab_instance(remote)
             project = gl.projects.get(f"{namespace}/{repository}")
-            download_and_unzip_artifacts(project, output, branch, job, temp)
+            download_and_unzip_artifacts(project, output, branch, job, temp, verbose, silent)
         except gitlab.GitlabGetError:
             print(
                 f"Could not find GitLab repository at {remote['url']}/{namespace}/{repository}")
@@ -87,7 +91,7 @@ def gitlab_instance(remote):
     return gitlab.Gitlab(url, private_token=token)
 
 
-def download_and_unzip_artifacts(project, output, branch, job, temp):
+def download_and_unzip_artifacts(project, output, branch, job, temp, verbose, silent):
     zipfn = "___artifacts.zip"
     success = False
     with yaspin(text="Downloading", color="cyan") as spinner:
@@ -140,5 +144,5 @@ try:
         for shortcut in config['shortcuts']:
             main.command(name=shortcut)(shortcut_command(shortcut))
 except FileNotFoundError or FileExistsError:
-    print("Could not find configuration file!")
+    print(f"Could not find configuration file at {CONFIG_PATH}!")
     exit(1)
