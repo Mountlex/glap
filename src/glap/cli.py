@@ -26,13 +26,13 @@ def main():
 @click.argument('namespace')
 @click.argument('repository')
 @click.option('-o', '--output', default='.', type=click.Path(file_okay=False, dir_okay=True))
-@click.option('-b', '--branch', default='main', type=click.STRING)
+@click.option('--ref', default='main', type=click.STRING)
 @click.option('-r', '--remote_name', type=click.STRING)
 @click.option('-t', '--temp / --no-temp', default=False)
 @click.option('-v', '--verbose / --no-verbose', default=False)
 @click.option('-s', '--silent / --no-silent', default=False)
-@click.option('-j', '--job', default='PDFs', type=click.STRING)
-def download(namespace, repository, output, branch, job, remote_name, temp, verbose, silent):
+@click.option('-j', '--job', type=click.STRING)
+def download(namespace, repository, output, ref, job, remote_name, temp, verbose, silent):
     if 'remotes' in config and len(list(config['remotes'])) > 0:
         all_remotes = config['remotes']
         if remote_name and remote_name in all_remotes:
@@ -41,8 +41,9 @@ def download(namespace, repository, output, branch, job, remote_name, temp, verb
             first_remote = list(all_remotes.keys())[0]
             remote = all_remotes[first_remote]
 
+        
         connect_and_download(remote, namespace, repository,
-                             branch, job, output, temp, verbose, silent)
+                                ref, job, output, temp, verbose, silent)
     else:
         print("There are no remotes configured!")
 
@@ -50,37 +51,37 @@ def download(namespace, repository, output, branch, job, remote_name, temp, verb
 def shortcut_command(shortcut):
     shortcut_config = config['shortcuts'][shortcut]
     remote_name = shortcut_config['remote']
-    default_branch = shortcut_config['branch']
+    default_ref = shortcut_config['ref']
     default_job = shortcut_config['job']
 
     @click.option('-j', '--job', default=default_job, type=click.STRING)
-    @click.option('-b', '--branch', default=default_branch, type=click.STRING)
+    @click.option('--ref', default=default_ref, type=click.STRING)
     @click.option('-t', '--temp / --no-temp', default=False)
     @click.option('-o', '--output', default='.',
                   type=click.Path(file_okay=False, dir_okay=True))
     @click.option('-v', '--verbose / --no-verbose', default=False)
     @click.option('-s', '--silent / --no-silent', default=False)
-    def f(output, job, branch, temp, verbose, silent):
+    def f(output, job, ref, temp, verbose, silent):
         remote = config['remotes'][remote_name]
         namespace = shortcut_config['namespace']
         repository = shortcut_config['repository']
 
         connect_and_download(remote, namespace, repository,
-                             branch, job, output, temp, verbose, silent)
+                             ref, job, output, temp, verbose, silent)
 
     return f
 
 
-def connect_and_download(remote, namespace, repository, branch, job, output, temp, verbose, silent):
+def connect_and_download(remote, namespace, repository, ref, job, output, temp, verbose, silent):
     if check_remote(remote):
         try:
             gl = gitlab_instance(remote)
             project = gl.projects.get(f"{namespace}/{repository}")
             if verbose:
                 print(
-                    f"Job {job} on branch {branch} at {remote['url']}{namespace}/{repository}")
+                    f"Job {job}@{ref} from {remote['url']}{namespace}/{repository}")
             download_and_unzip_artifacts(
-                project, output, branch, job, temp, verbose, silent)
+                project, output, ref, job, temp, verbose, silent)
         except gitlab.GitlabGetError:
             print(
                 f"Could not find GitLab repository at {remote['url']}{namespace}/{repository}")
@@ -105,7 +106,7 @@ def gitlab_instance(remote):
     return gitlab.Gitlab(url, private_token, oauth_token, job_token)
 
 
-def download_and_unzip_artifacts(project, output, branch, job, temp, verbose, silent):
+def download_and_unzip_artifacts(project, output, ref_name, job, temp, verbose, silent):
     zipfn = "___artifacts.zip"
     success = False
 
@@ -115,14 +116,14 @@ def download_and_unzip_artifacts(project, output, branch, job, temp, verbose, si
 
     try:
         with open(zipfn, "wb") as f:
-            project.artifacts(ref_name=branch, job=job,
+            project.artifacts(ref_name=ref_name, job=job,
                               streamed=True, action=f.write)
         success = True
     except gitlab.exceptions.GitlabGetError as error:
         if not silent:
             spinner.stop()
         print(
-            f"Could not download artifacts for branch {branch} and job {job}: {error}!")
+            f"Could not download artifacts for job {job}@{ref_name}: {error}!")
     else:
         if not silent:
             spinner.ok("✔")
