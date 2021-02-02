@@ -1,6 +1,7 @@
 # glap
 
 ![Python package](https://github.com/Mountlex/glap/workflows/Python%20package/badge.svg)
+[![PyPI version](https://badge.fury.io/py/glap.svg)](https://badge.fury.io/py/glap)
 
 A GitLab Artifact Puller / Downloader
 
@@ -12,7 +13,12 @@ A GitLab Artifact Puller / Downloader
 pip install glap
 ```
 
-Before you can use `glap`, you have to setup your configuration file located at `~/.config/glap/glap.toml` (if such a file cannot be found, it will also search for a local `glap.toml` file). It contains the following information.
+Before you can use `glap`, you have to setup a configuration file named `glap.toml`. `glap` searches the file at the following locations (in this order):
+
+1. `./glap.toml`
+2. `~/.config/glap/glap.toml` (default location for configuration files on your OS; here for Linux)
+
+It contains the following information:
 
 * Remotes with corresponding `url`s and access-tokens:
 
@@ -24,7 +30,7 @@ oauth_token = "<my-oauth-token>"
 job_token = "<my-job-token>"
 ```
 
-Note that there must be exactly one token specified.
+Note that there must be exactly one authentication token specified.
 
 * Shortcuts for specific repositories. For example, the following shortcut points at the `PDFs` job of the `main` branch of `https://gitlab.com/name/repo`.
 
@@ -33,7 +39,7 @@ Note that there must be exactly one token specified.
 remote = "myremote"
 namespace = "name"
 repository = "repo"
-branch = "main"
+ref = "main"
 job = "PDFs"
 ```
 
@@ -60,7 +66,7 @@ where `myremote` is the name of the remote in the configuration file.
 ### Options
 
 * `--job` (`-j`) specifies the job's name.
-* `--branch` (`-b`) specifies the branch's name.
+* `--ref` specifies the name of the branch or tag from where the job is located.
 * `--output` (`-o`) specifies the download location.
 * `--temp` (`-t`) downloads the artifact to a temporary location and opens the directory.
 * `--silent` (`-s`) enables silent mode (exceptions only).
