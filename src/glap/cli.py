@@ -51,9 +51,9 @@ def download(namespace, repository, output, ref, job, remote_name, temp, verbose
 def shortcut_command(shortcut):
     shortcut_config = config['shortcuts'][shortcut]
     
-    default_remote = shortcut_config.get('remote', '')
+    default_remote = shortcut_config.get('remote')
     default_ref = shortcut_config.get('ref', 'main')
-    default_job = shortcut_config.get('job', '')
+    default_job = shortcut_config.get('job')
 
     @click.option('-j', '--job', default=default_job, type=click.STRING)
     @click.option('--ref', default=default_ref, type=click.STRING)
@@ -64,6 +64,10 @@ def shortcut_command(shortcut):
     @click.option('-v', '--verbose / --no-verbose', default=False)
     @click.option('-s', '--silent / --no-silent', default=False)
     def f(output, job, ref, remote_name, temp, verbose, silent):
+        if remote_name not in config['remotes']:
+            print(f"Cannot find remote {remote_name}! Check your remote configuration.")
+            return
+
         remote = config['remotes'][remote_name]
 
         if 'namespace' not in shortcut_config:
