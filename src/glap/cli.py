@@ -50,19 +50,30 @@ def download(namespace, repository, output, ref, job, remote_name, temp, verbose
 
 def shortcut_command(shortcut):
     shortcut_config = config['shortcuts'][shortcut]
-    remote_name = shortcut_config['remote']
-    default_ref = shortcut_config['ref']
-    default_job = shortcut_config['job']
+    
+    default_remote = shortcut_config.get('remote', '')
+    default_ref = shortcut_config.get('ref', 'main')
+    default_job = shortcut_config.get('job', '')
 
     @click.option('-j', '--job', default=default_job, type=click.STRING)
     @click.option('--ref', default=default_ref, type=click.STRING)
     @click.option('-t', '--temp / --no-temp', default=False)
+    @click.option('-r', '--remote_name', default=default_remote, type=click.STRING)
     @click.option('-o', '--output', default='.',
                   type=click.Path(file_okay=False, dir_okay=True))
     @click.option('-v', '--verbose / --no-verbose', default=False)
     @click.option('-s', '--silent / --no-silent', default=False)
-    def f(output, job, ref, temp, verbose, silent):
+    def f(output, job, ref, remote_name, temp, verbose, silent):
         remote = config['remotes'][remote_name]
+
+        if 'namespace' not in shortcut_config:
+            print(f"No namespace specified for shortcut {shortcut}!")
+            return
+  
+        if 'repository' not in shortcut_config:
+            print(f"No repository specified for shortcut {shortcut}!")
+            return
+
         namespace = shortcut_config['namespace']
         repository = shortcut_config['repository']
 
@@ -82,9 +93,12 @@ def connect_and_download(remote, namespace, repository, ref, job, output, temp, 
                     f"Job {job}@{ref} from {remote['url']}{namespace}/{repository}")
             download_and_unzip_artifacts(
                 project, output, ref, job, temp, verbose, silent)
-        except gitlab.GitlabGetError:
+        except gitlab.GitlabGetError as error:
             print(
-                f"Could not find GitLab repository at {remote['url']}{namespace}/{repository}")
+                f"Could not find GitLab repository: {error}")
+        except Exception as error:
+            print(
+                f"Error while trying to connect to GitLab repository: {error}")
 
 
 def check_remote(remote):
