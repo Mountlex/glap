@@ -52,7 +52,7 @@ glap myshortcut
 Alternatively, you can specify the namespace and repository directly
 
 ```bash
-glap download <namespace> <repository>
+glap download <namespace> <repository> -j <job> --ref <branch or tag>
 ```
 
 If no remote is given, `glap` will use the first one in the configuration file. Otherwise, you can use
