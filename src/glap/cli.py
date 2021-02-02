@@ -163,10 +163,10 @@ def open_dir(path):
 
 
 # Setup from config
-if Path(CONFIG_PATH).is_file():
-    config_file = CONFIG_PATH
-elif Path(CONFIG_FILE_NAME).is_file():
+if Path(CONFIG_FILE_NAME).is_file():
     config_file = CONFIG_FILE_NAME
+elif Path(CONFIG_PATH).is_file():
+    config_file = CONFIG_PATH
 else:
     config_file = None
 
