@@ -1,7 +1,7 @@
 # glap
 
 ![Python package](https://github.com/Mountlex/glap/workflows/Python%20package/badge.svg)
-[![PyPI version](https://badge.fury.io/py/glap.png)](https://badge.fury.io/py/glap)
+![PyPI](https://img.shields.io/pypi/v/glap)
 
 A GitLab Artifact Puller / Downloader
 
