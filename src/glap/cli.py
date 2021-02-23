@@ -91,7 +91,7 @@ def connect_and_download(remote, namespace, repository, ref, job, output, temp, 
     if check_remote(remote):
         try:
             gl = gitlab_instance(remote)
-            project = gl.projects.get(f"{namespace}/{repository}")
+            project = gl.projects.get(f"{namespace}/{repository}", lazy=True)
             if verbose:
                 print(
                     f"Job {job}@{ref} from {remote['url']}{namespace}/{repository}")
