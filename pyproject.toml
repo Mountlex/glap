@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "glap"
-version = "0.3.0"
+version = "0.3.1"
 description = "GitLab Artifact Puller / Downloader"
 authors = ["Alexander Lindermayr <alexander.lindermayr97@gmail.com>"]
 license = "MIT"
@@ -15,7 +15,7 @@ python = "^3.7"
 toml = "^0.10.2"
 requests = "^2.25.1"
 python-gitlab = "^2.6.0"
-yaspin = "^1.3.0"
+yaspin = "^1.4.0"
 click = "^7.1.2"
 appdirs = "^1.4.4"
 
